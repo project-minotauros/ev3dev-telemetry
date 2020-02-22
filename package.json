@@ -19,5 +19,8 @@
   "bugs": {
     "url": "https://github.com/project-minotauros/ev3dev-telemetry/issues"
   },
-  "homepage": "https://github.com/project-minotauros/ev3dev-telemetry#readme"
+  "homepage": "https://github.com/project-minotauros/ev3dev-telemetry#readme",
+  "devDependencies": {
+    "electron": "^8.0.1"
+  }
 }
