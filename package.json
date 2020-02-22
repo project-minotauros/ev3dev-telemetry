@@ -1,0 +1,23 @@
+{
+  "name": "ev3dev-telemetry",
+  "version": "1.0.0",
+  "description": "Telemetry Desktop App for ev3dev",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/project-minotauros/ev3dev-telemetry.git"
+  },
+  "keywords": [
+    "ev3dev",
+    "telemetry"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/project-minotauros/ev3dev-telemetry/issues"
+  },
+  "homepage": "https://github.com/project-minotauros/ev3dev-telemetry#readme"
+}
