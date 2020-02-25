@@ -24,6 +24,7 @@
     "electron": "^8.0.1"
   },
   "dependencies": {
+    "systemjs": "^6.2.4",
     "three": "^0.113.2"
   }
 }
