@@ -71,7 +71,7 @@ function animate(time: number) {
 	ImGui.Begin("Debug");
 	ImGui.ColorEdit4("clear color", clear_color);
 	ImGui.Text(`Mesh x rotation: ${mesh.rotation.x.toString()}`);
-	ImGui.SliderFloat3("scale", mesh.scale, -2, 2);
+	//ImGui.SliderFloat3("scale", mesh.scale, -2, 2);
 	ImGui.End();
 
 	ImGui.EndFrame();
