@@ -1,4 +1,8 @@
-const { app, BrowserWindow } = require('electron')
+const { app, BrowserWindow } = require('electron');
+require('update-electron-app')({
+  repo: 'project-minotaurus/ev3dev-telemetry',
+  updateInterval: '1 hour'
+});
 
 let window;
 function createWindow() {
