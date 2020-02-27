@@ -2,6 +2,7 @@ const path = require('path');
 
 module.exports = {
   entry: './src/app.ts',
+  mode: 'development',
   output: {
     filename: 'bundle.js',
     path: path.resolve(__dirname, 'dist')
@@ -15,7 +16,10 @@ module.exports = {
     ]
   },
   resolve: {
+    extensions: ['.js', '.tsx', '.ts'],
     modules: ["node_modules"],
-    extensions: ['.js', '.ts', '.tsx']
   },
+  node: {
+    fs: 'empty'
+  }
 };
