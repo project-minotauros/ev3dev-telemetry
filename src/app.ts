@@ -11,26 +11,19 @@ main().catch(err => console.log(err));
 async function main(): Promise<void> {
 	await ImGui.default();
 
-	// renderer = new three.WebGLRenderer( { antialias: true } );
-	// document.body.appendChild( renderer.domElement );
-	console.log("imgui: ", ImGui);
 	init();
 	animate(0);
 }
 
-console.log('hello world');
-
-
-
-
 function init() {
 
-	camera = new three.PerspectiveCamera( 70, window.innerWidth / window.innerHeight, 0.1, 1000 );
-	camera.position.z = 5;
+	camera = new three.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
+	camera.position.z = 500;
 
 	scene = new three.Scene();
+	scene.add(camera);
 
-	var geometry = new three.BoxGeometry();
+	var geometry = new three.BoxGeometry(150, 150, 150);
 	var material = new three.MeshBasicMaterial( { color: 0x00ff00 } );
 
 	mesh = new three.Mesh( geometry, material );
@@ -40,17 +33,13 @@ function init() {
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	document.body.appendChild( renderer.domElement );
-	console.log (renderer.domElement );
-
-	//
-
 	window.addEventListener( 'resize', onWindowResize, false );
 
 	ImGui.CreateContext();
 	ImGui_Impl.Init(renderer.domElement);
 	ImGui.StyleColorsDark();
-	clear_color = new ImGui.ImVec4(0.3, 0.3, 0.3, 1.00);
 
+	clear_color = new ImGui.ImVec4(0.3, 0.3, 0.3, 1.00);
 }
 
 function onWindowResize() {
@@ -69,9 +58,10 @@ function animate(time: number) {
 	ImGui.SetNextWindowPos(new ImGui.ImVec2(20, 20), ImGui.Cond.FirstUseEver);
 
 	ImGui.Begin("Debug");
-	ImGui.ColorEdit4("clear color", clear_color);
+	ImGui.ColorEdit3("clear color", clear_color);
 	ImGui.Text(`Mesh x rotation: ${mesh.rotation.x.toString()}`);
 	//ImGui.SliderFloat3("scale", mesh.scale, -2, 2);
+	ImGui.Checkbox("visible", (value = mesh.visible) => mesh.visible = value);
 	ImGui.End();
 
 	ImGui.EndFrame();
@@ -80,9 +70,11 @@ function animate(time: number) {
 	mesh.rotation.x += 0.005;
 	mesh.rotation.y += 0.01;
 
-	renderer.setClearColor(new three.Color(clear_color.x, clear_color.y, clear_color.z), clear_color.w);
+	renderer.setClearColor(new three.Color(clear_color.x, clear_color.y, clear_color.z), 1.0);
 	renderer.render( scene, camera );
 	ImGui_Impl.RenderDrawData(ImGui.GetDrawData());
+
+	renderer.state.reset();
 
 	requestAnimationFrame( animate );
 }
