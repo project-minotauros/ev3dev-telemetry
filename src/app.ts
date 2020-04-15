@@ -1,4 +1,4 @@
-import * as three from 'three';
+import * as THREE from 'three';
 import * as ImGui from 'imgui-js';
 import * as ImGui_Impl from 'imgui-js/example/imgui_impl';
 
@@ -18,20 +18,19 @@ async function main(): Promise<void> {
 }
 
 function init() {
-
-	camera = new three.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
+	camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
 	camera.position.z = 500;
 
-	scene = new three.Scene();
+	scene = new THREE.Scene();
 	scene.add(camera);
 
-	var geometry = new three.BoxGeometry(150, 150, 150);
-	var material = new three.MeshBasicMaterial( { color: 0x00ff00 } );
+  var object_loader = new THREE.ObjectLoader();
+  object_loader.load('assets/model/ev3.json', (model: any) => {
+    mesh = model;
+    scene.add(mesh);
+  }, undefined, (err: any) => console.log(err));
 
-	mesh = new three.Mesh( geometry, material );
-	scene.add( mesh );
-
-	renderer = new three.WebGLRenderer( { antialias: true } );
+	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
 	document.body.appendChild( renderer.domElement );
@@ -41,31 +40,33 @@ function init() {
 	ImGui_Impl.Init(renderer.domElement);
 	ImGui.StyleColorsDark();
 
-	clear_color = new ImGui.ImVec4(0.3, 0.3, 0.3, 1.00);
+	clear_color = new ImGui.ImVec4(0.6, 1.0, 0.4, 1.00);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.5));
 }
 
 function onWindowResize() {
-
 	camera.aspect = window.innerWidth / window.innerHeight;
 	camera.updateProjectionMatrix();
 
 	renderer.setSize( window.innerWidth, window.innerHeight );
-
 }
 
 function animate(time: number) {
 	ImGui_Impl.NewFrame(time);
 	ImGui.NewFrame();
 
-  debug_window(clear_color, mesh);
+  if (!(mesh === undefined))
+    debug_window(clear_color, mesh);
 
 	ImGui.EndFrame();
 	ImGui.Render();
 
-	mesh.rotation.x += 0.005;
-	mesh.rotation.y += 0.01;
+  if(!(mesh === undefined)) {
+	  mesh.rotation.x += 0.005;
+    mesh.rotation.y += 0.01;
+  }
 
-	renderer.setClearColor(new three.Color(clear_color.x, clear_color.y, clear_color.z), 1.0);
+	renderer.setClearColor(new THREE.Color(clear_color.x, clear_color.y, clear_color.z), 1.0);
 	renderer.render( scene, camera );
 	ImGui_Impl.RenderDrawData(ImGui.GetDrawData());
 
