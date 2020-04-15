@@ -6,7 +6,7 @@ require('update-electron-app')({
 
 let window;
 function createWindow() {
-  window = new BrowserWindow({ width: 800, height: 600, icon: __dirname + '/assets/imgs/icon.png' });
+  window = new BrowserWindow({ width: 800, height: 600, icon: __dirname + '/assets/img/icon.png' });
   window.loadFile('index.html');
   window.removeMenu();
   window.webContents.openDevTools();
