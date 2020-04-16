@@ -3,10 +3,13 @@ import * as ImGui from 'imgui-js';
 import * as ImGui_Impl from 'imgui-js/example/imgui_impl';
 
 import {debug_window} from './debug';
+import {initialize_popup} from './initial_configuration';
 
 var camera: any, scene: any, renderer: any;
 var mesh: any;
 var clear_color: any;
+
+var socket: any, state: any = {ready: false};
 
 main().catch(err => console.log(err));
 
@@ -33,6 +36,7 @@ function init() {
 	renderer = new THREE.WebGLRenderer( { antialias: true } );
 	renderer.setPixelRatio( window.devicePixelRatio );
 	renderer.setSize( window.innerWidth, window.innerHeight );
+  renderer.domElement.setAttribute("tabindex", "1");
 	document.body.appendChild( renderer.domElement );
 	window.addEventListener( 'resize', onWindowResize, false );
 
@@ -54,6 +58,8 @@ function onWindowResize() {
 function animate(time: number) {
 	ImGui_Impl.NewFrame(time);
 	ImGui.NewFrame();
+
+  initialize_popup(state, socket);
 
   if (!(mesh === undefined))
     debug_window(clear_color, mesh);
