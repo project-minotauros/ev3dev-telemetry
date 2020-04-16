@@ -1,5 +1,5 @@
 import * as ImGui from 'imgui-js';
-import {IM_ARRAYSIZE, ImStringBuffer} from 'imgui-js';
+import {IM_ARRAYSIZE, ImStringBuffer, ImGuiWindowFlags} from 'imgui-js';
 import {Static, STATIC} from './imgui_helpers'
 
 let error: boolean = false;
@@ -8,7 +8,7 @@ let connecting: boolean = false;
 
 export function initialize_popup(state: any, socket: any) {
   if (!(state.ready)) ImGui.OpenPopup("Enter ev3 address");
-  if (ImGui.BeginPopupModal("Enter ev3 address")) {
+  if (ImGui.BeginPopupModal("Enter ev3 address", null, ImGuiWindowFlags.NoResize | ImGuiWindowFlags.NoMove)) {
     if (connecting && !error) {
       ImGui.Text("Connecting... Please wait...");
     } else {
