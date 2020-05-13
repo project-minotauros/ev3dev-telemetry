@@ -9,7 +9,19 @@ var camera: any, scene: any, renderer: any;
 var mesh: any;
 var clear_color: any;
 
-var socket: any, state: any = {ready: false};
+var socket: any;
+var state: any = {
+  ready: false
+};
+
+var cpanel_state: any = {
+  ports: false,
+  leds: false,
+  battery_info: false,
+  audio_controls: false,
+  display: false,
+  console: false
+};
 
 main().catch(err => console.log(err));
 
