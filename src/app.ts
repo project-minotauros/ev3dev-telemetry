@@ -4,14 +4,15 @@ import * as ImGui_Impl from 'imgui-js/example/imgui_impl';
 
 import {debug_window} from './debug';
 import {initialize_popup} from './initial_configuration';
+import {handle_message} from './message_handler';
 
 var camera: any, scene: any, renderer: any;
 var mesh: any;
 var clear_color: any;
 
-var socket: any;
 var state: any = {
-  ready: false
+  ready: false,
+  socket: undefined
 };
 
 var cpanel_state: any = {
@@ -71,7 +72,8 @@ function animate(time: number) {
 	ImGui_Impl.NewFrame(time);
 	ImGui.NewFrame();
 
-  initialize_popup(state, socket);
+  initialize_popup(state);
+  handle_message(state, cpanel_state);
 
   if (!(mesh === undefined))
     debug_window(clear_color, mesh);
