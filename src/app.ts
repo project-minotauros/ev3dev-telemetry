@@ -5,6 +5,8 @@ import * as ImGui_Impl from 'imgui-js/example/imgui_impl';
 import {debug_window} from './debug';
 import {initialize_popup} from './initial_configuration';
 import {handle_message} from './message_handler';
+import {display_control_panel} from './control_panel';
+import {display_basic_panels} from './basic_panels';
 
 var camera: any, scene: any, renderer: any;
 var mesh: any;
@@ -74,6 +76,8 @@ function animate(time: number) {
 
   initialize_popup(state);
   handle_message(state, cpanel_state);
+  display_control_panel(state, cpanel_state);
+  display_basic_panels(state, cpanel_state);
 
   if (!(mesh === undefined))
     debug_window(clear_color, mesh);
