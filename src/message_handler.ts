@@ -1,5 +1,5 @@
 import Marshal from './marshal';
-import {InboundFlags, AvailableDevices} from './message_type';
+import {InboundFlags, OutboundFlags, AvailableDevices} from './message_type';
 
 export function handle_message(state: any, cpanel_state: any) {
   if (state.ready && state.socket.onmessage == null) state.socket.onmessage = (message: any) => {
@@ -22,6 +22,14 @@ export function handle_message(state: any, cpanel_state: any) {
         throw new Error('Response type not recognized.');
     }
   };
+}
+
+export function send_scan_devices(state: any, device: number = AvailableDevices.NONE) {
+  send_command(state, encode_command(OutboundFlags.SCAN_DEVICES, 0, device, 0));
+}
+
+export function send_execute_command(state: any, cmd: string) {
+  send_command(state, encode_command(OutboundFlags.EXECUTE_COMMAND, 0, 0, 0), cmd);
 }
 
 export function encode_command(command: number, sub_command: number, device_type: number, device_id: number) {
