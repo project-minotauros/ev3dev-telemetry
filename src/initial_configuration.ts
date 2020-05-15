@@ -31,9 +31,13 @@ function connect(ev3_address: string, state: any) {
   state.socket.onerror = (event: any) => {
     error_text = event.toString();
     error = true;
+    connecting = false;
   };
   state.socket.onclose = (event: any) => {
     state.ready = false;
+    error = false;
+    error_text = "";
+    connecting = false;
   };
   state.socket.onopen = (event: any) => {
     state.ready = true;
