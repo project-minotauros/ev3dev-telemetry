@@ -23,3 +23,15 @@ export function handle_message(state: any, cpanel_state: any) {
     }
   };
 }
+
+export function encode_command(command: number, sub_command: number, device_type: number, device_id: number) {
+  command = Math.abs(Math.min(command, 15));
+  sub_command = Math.abs(Math.min(sub_command, 7));
+  device_type = Math.abs(Math.min(device_type, 15));
+  device_id = Math.abs(Math.min(device_id, 7));
+  return String.fromCharCode((command << 10) | (sub_command << 7) | (device_type << 3) | device_id);
+}
+
+export function send_command(state: any, command: any, payload: string = "") {
+  state.socket.send(command + payload);
+}
