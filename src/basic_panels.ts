@@ -24,7 +24,7 @@ function console_panel(cpanel_state: any) {
     scrollToBottom = true;
   }
   ImGui.SameLine();
-  if (ImGui.Button("↓")) scrollToBottom = true;
+  if (ImGui.Button("v")) scrollToBottom = true;
   ImGui.SameLine();
   if (ImGui.Checkbox("Auto-scroll", (_ = autoScroll) => autoScroll = _))
     if (autoScroll) scrollToBottom = true;
