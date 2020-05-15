@@ -1,267 +1,276 @@
-const MARSHAL_TRUE        = 'T'.charCodeAt(0);
-const MARSHAL_FALSE       = 'F'.charCodeAt(0);
-const MARSHAL_NULL        = '0'.charCodeAt(0);
-const MARSHAL_ARRAY       = '['.charCodeAt(0);
-const MARSHAL_HASH        = '{'.charCodeAt(0);
-const MARSHAL_INT         = 'i'.charCodeAt(0);
-const MARSHAL_SYM         = ':'.charCodeAt(0);
-const MARSHAL_SYM_REF     = ';'.charCodeAt(0);
-const MARSHAL_INSTANCEVAR = 'I'.charCodeAt(0);
-const MARSHAL_IVAR_STR    = '"'.charCodeAt(0);
-const MARSHAL_FLOAT       = 'f'.charCodeAt(0);
+class Ivar {
+  buffer: Buffer;
+  encoding: string;
+  str: string;
 
-function __load(buffer: Buffer) {
-  switch (buffer.length) {
-    case 1:
-      if (buffer[0] === 0) return 0;
-      var num = buffer.readInt8(0);
+  constructor(str: string, encoding: string) {
+    this.buffer = Buffer.from(str);
+    this.encoding = encoding;
+    this.str = this.buffer.toString('utf8');
+    return this;
+  }
 
-      if (num > 0) num -= 5;
-      else num += 5;
+  toString() {
+    return this.buffer.toString(this.encoding || 'utf8');
+  }
 
-      return num;
-    case 2:
-      var num = buffer.readUInt8(1);
-      if (buffer[0] === 255) num = -(256 - num);
-      return num;
-    case 3:
-      var num = buffer.readUInt16LE(1);
-      if (buffer[0] === 254) num = -(65536 - num);
-      return num;
-    case 4:
-      var tmpBuffer = Buffer.concat([buffer.slice(1), new Buffer([0])]);
-      var num = tmpBuffer.readInt32LE(0);
-      if (buffer[0] === 253) num = -(16777216 - num);
-      return num;
-    case 5:
-      return buffer.readInt32LE(1);
-    default:
-      throw new Error('Not an int');
+  toJSON() {
+    return this.toString();
   }
 }
 
-function __length(initial_byte: number) {
-  switch (initial_byte) {
-    case 4:
-    case 252:
-      return 5;
-    case 3:
-    case 253:
-      return 4;
-    case 2:
-    case 254:
-      return 3;
-    case 1:
-    case 255:
-      return 2;
-    case 0:
-    default:
-      return 1;
+const NUMERALS = '0123456789abcdef';
+
+export default class Marshal {
+  _index: number;
+  _version: string;
+  _symbols: any[];
+  _objects: any[];
+  buffer: Buffer;
+  parsed: any;
+
+  constructor(input: any, encoding: any) {
+    if (input !== void 0) this.load(input, encoding);
+    return this;
   }
-}
 
-function __dump(input: any) {
-  if (input === 0) return new Buffer([0]);
-
-  if (input > 0) {
-    if (input < 123) return new Buffer([input + 5]);
-    else if (input < 256) return new Buffer([1, input]);
-    else if (input < 65536) {
-      var uint = new Buffer(2);
-      uint.writeUInt16LE(input, 0);
-      return Buffer.concat([new Buffer([2]), uint]);
-    } else if (input < 16777216) {
-      var uint = new Buffer(4);
-      uint.writeUInt32LE(input, 0);
-      return Buffer.concat([new Buffer([3]), uint.slice(0, uint.length - 1)]);
-    } else {
-      var uint = new Buffer(4);
-      uint.writeUInt32LE(input, 0);
-      return Buffer.concat([new Buffer([4]), uint]);
-    }
-  } else {
-    if (input > -124) return Buffer.concat([new Buffer([input - 5])]);
-    else if (input > -257) return Buffer.concat([new Buffer([255, input])]);
-    else if (input > -65537) {
-      var uint = new Buffer(2);
-      uint.writeUInt16LE(65536 - Math.abs(input), 0);
-      return Buffer.concat([new Buffer([254]), uint]);
-    } else if (input > - 16777217) {
-      var uint = new Buffer(4);
-      uint.writeUInt16LE(16777216 - Math.abs(input), 0);
-      return Buffer.concat([new Buffer([253]), uint.slice(0, uint.length - 1)]);
-    } else {
-      var uint = new Buffer(4);
-      uint.writeUInt32LE(4294967296 - Math.abs(input), 0);
-      return Buffer.concat([new Buffer([252]), uint]);
-    }
+  dump(input: any, encoding: any) {
+    let buff = new Buffer('0408', 'hex');
+    // this.buffer = Buffer.concat([buff, _dump(input)]);
+    if (encoding) return this.buffer.toString(encoding);
+    return this.buffer;
   }
-}
 
-function parse(buffer: Buffer) {
-  var offset = 0;
-  var symbols: any = [];
+  load(buffer: any, encoding: BufferEncoding) {
+    if (buffer === void 0 || buffer.length === 0) throw new Error('No buffer specified');
+    else if (buffer instanceof Buffer) this.buffer = buffer;
+    else this.buffer = Buffer.from(buffer, encoding);
+    this._index = 0;
+    this._version = this.buffer.readUInt8(this._index++) + '.' + this.buffer.readUInt8(this._index++);
+    this._symbols = [];
+    this._objects = [];
+    if (this._index < this.buffer.length) this.parsed = this._parse();
+    return this;
+  }
 
-  var _identify_next_token = function(): any {
-    var output;
-
-    var _parse_string = function() {
-      var length = __load(buffer.slice(offset + 2, offset + 3));
-      var isIvar = buffer[offset + 1] === 34;
-      var offsetFastForward = isIvar ? 3 : 2;
-      var tempBuf = buffer.slice(offset + offsetFastForward, offset + offsetFastForward + length);
-
-      offset += tempBuf.length + 3;
-      if (buffer[offset + 1] === MARSHAL_SYM) offset += 5;
-      else if (buffer[offset + 1] === MARSHAL_SYM_REF) offset += 4;
-      else if (buffer[offset + 1] === undefined) {}
-      else throw new Error('String not terminated with encoding symbol. Expected 3a or 3b, got ' + buffer[offset + 1].toString(16) + ' instead.');
-
-      return tempBuf.toString('utf8');
-    };
-
-    switch (buffer[offset]) {
-      case MARSHAL_TRUE: offset += 1; return true;
-      case MARSHAL_FALSE: offset += 1; return false;
-      case MARSHAL_NULL: offset += 1; return null;
-      case MARSHAL_INT:
-        var length = __length(buffer[offset + 1]);
-        var slice = buffer.slice(offset + 1, offset + 1 + length);
-        offset += length + 1;
-        return __load(slice);
-      case MARSHAL_FLOAT:
-        var length = __load(buffer.slice(offset + 1, offset + 2));
-        var tempBuf = buffer.slice(offset + 2, offset + 2 + length);
-        offset += length + 2;
-        if (tempBuf.toString('utf8') === 'inf') return Infinity;
-        if (tempBuf.toString('utf8') ==='-inf') return -Infinity;
-        return parseFloat(tempBuf.toString('utf8'));
-      case MARSHAL_SYM:
-        var length = __load(buffer.slice(offset + 1, offset + 2));
-        var tempBuf = buffer.slice(offset + 2, offset + 2 + length);
-        offset += length + 2;
-        var sym = tempBuf.toString('utf8');
-        symbols.push(sym);
-        return sym;
-      case MARSHAL_SYM_REF:
-        var index = __load(buffer.slice(offset + 1, offset + 2));
-        offset += 2;
-        return symbols[index];
-      case MARSHAL_IVAR_STR:
-        return _parse_string();
-      case MARSHAL_INSTANCEVAR:
-        var ivarType = buffer[offset + 1];
-        switch (ivarType) {
-          case MARSHAL_IVAR_STR:
-            return _parse_string();
-          default:
-            throw new Error('Unrecognized instance variable type (only strings supported).');
-        }
-        throw new Error(ivarType.toString());
-      case MARSHAL_ARRAY:
-        var tokensExpected = __load(buffer.slice(offset + 1, offset + 2));
-        var elements = [];
-        offset += 2;
-        for (let i = 0; i < tokensExpected; i++)
-          elements.push(_identify_next_token());
-        return elements;
-      case MARSHAL_HASH:
-        var tokensExpected = __load(buffer.slice(offset + 1, offset + 2));
-        var hashOut: any = {};
-        offset += 2;
-        for (let i = 0; i < tokensExpected; i += 2) {
-          var key = _identify_next_token();
-          var val = _identify_next_token();
-          hashOut[key] = val;
-        }
-        return hashOut;
+  _parse(): any {
+    let type_code = this.buffer.readUInt8(this._index++);
+    switch (type_code) {
+      case 0x30: // 0 - nil
+        return null;
+      case 0x54: // T - true
+        return true;
+      case 0x46: // F - false
+        return false;
+      case 0x69: // i - integer
+        return this._parseInteger();
+      case 0x22: // " - string
+        return this._parseString();
+      case 0x3A: // : - symbol
+        return this._parseSymbol();
+      case 0x3B: // ; - symbol ref
+        return this._parseSymbolRef();
+      case 0x40: // @ - object link
+        return this._parseObjectLink();
+      case 0x49: // I - IVAR (encoded string or regex)
+        return this._parseIVAR();
+      case 0x5B: // [ - array
+        return this._parseArray();
+      case 0x6F: // o - object
+        return this._parseObject();
+      case 0x7B: // { - hash
+        return this._parseHash();
+      case 0x6C: // l - bignum
+        return this._parseBignum();
+      case 0x66: // f - float
+        return this._parseFloat();
+      case 0x2F: // / - regex
+      case 0x63: // c - class
+      case 0x6D: // m - module
       default:
-        throw new Error('Unespected data, value ' + buffer[offset].toString(16) + ' at offset ' + offset + ' on ' + buffer.toString('hex') + '. Probably unimplemented?');
+        throw new Error('Unsupported typecode ' + type_code + '.');
     }
-
-    return output;
   }
 
-  return _identify_next_token();
-}
+  _getLength() {
+    let length = this.buffer.readInt8(this._index++);
+    if (length === 0) length = 0;
+    else if (length >= 6) length -= 5;
+    else if (length <= -6) length += 5;
+    return length;
+  }
 
-function _dump(value: any) {
-  var stringEncodingOffset: any;
+  _parseFloat() {
+    let length = this._getLength();
+    let floatValue = this.buffer.slice(this._index, this._index + length);
+    this._index += length;
+    if (floatValue.toString('utf8') === 'inf') return Infinity;
+    if (floatValue.toString('utf8') === '-inf') return -Infinity;
+    if (floatValue.toString('utf8') === 'nan') return NaN;
+    return parseFloat(floatValue.toString('utf8'));
+  }
 
-  var _dumpValue = function(value: any): any {
-    var _ivar = function(tyype: any, value: any) {
-      var trail;
-      if (stringEncodingOffset) trail = new Buffer([6, MARSHAL_SYM_REF, 0, 84]);
-      else {
-        trail = new Buffer([6, MARSHAL_SYM, 6, 9, 84]);
-        stringEncodingOffset = true;
-      }
+  _parseBignum() {
+    let isNegative = (this.buffer.readInt8(this._index++) === 0x2d);
+    let wordLength = this._getLength();
+    let byteLength = wordLength * 2;
+    let byteString = '';
+    for (let i = 0; i < byteLength; i++, this._index++)
+      byteString = this.buffer.toString('hex', this._index, this._index + 1) + byteString;
 
-      return Buffer.concat([
-        new Buffer([MARSHAL_INSTANCEVAR]),
-        new Buffer([tyype]),
-        new Buffer([value.length + 5]),
-        new Buffer(value, 'utf8'),
-        trail
-      ]);
-    };
-
-    if (value === true) return new Buffer([MARSHAL_TRUE]);
-    if (value === false) return new Buffer([MARSHAL_FALSE]);
-
-    if (typeof value === 'number') {
-      if (value === Math.round(value)) {
-        if (value === Infinity) {
-          var str = 'inf';
-          return Buffer.concat([new Buffer([MARSHAL_FLOAT]), __dump(str.length), new Buffer(str, 'utf8')]);
-        } else if (value === -Infinity) {
-          var str = '-inf';
-          return Buffer.concat([new Buffer([MARSHAL_FLOAT]), __dump(str.length), new Buffer(str, 'utf8')]);
-        } else return Buffer.concat([new Buffer([MARSHAL_INT]), __dump(value)]);
-      } else {
-        var str = value.toString();
-        return Buffer.concat([new Buffer([MARSHAL_FLOAT]), __dump(str.length), new Buffer(str, 'utf8')]);
+    let base10array = [0];
+    let i, j, base10arrayLength;
+    for (i = 0; i < byteString.length; i++) {
+      for (base10arrayLength = base10array.length; base10arrayLength--;)
+        base10array[base10arrayLength] *= 16;
+      base10array[0] += NUMERALS.indexOf(byteString.charAt(i));
+      for (j = 0; j < base10array.length; j++) {
+        if (base10array[j] > 10 - 1) {
+          if (base10array[j + 1] === void 0)
+            base10array[j + 1] = 0;
+          base10array[j + 1] += base10array[j + 1] = 0;
+          base10array[j] %= 10;
+        }
       }
     }
 
-    if (typeof value === 'string') return _ivar(MARSHAL_IVAR_STR, value);
+    while (base10array[base10array.length] === 0)
+      base10array.pop();
 
-    if (Array.isArray(value)) {
-      return Buffer.concat([
-        new Buffer([MARSHAL_ARRAY]),
-        __dump(value.length),
-      ].concat(value.map(function (item) { return _dumpValue(item); })));
-    }
-
-    if (value === Object(value)) {
-      return Buffer.concat([
-        new Buffer([MARSHAL_HASH]),
-        __dump(Object.keys(value).length)
-      ].concat([].concat.apply([], Object.keys(value).map(function(key) {
-        return [_dumpValue(key), _dumpValue(value[key])];
-      }))));
-    }
-
-    return new Buffer([MARSHAL_NULL]);
-  };
-}
-
-export function load(input: any, encoding: any) {
-  if (!(input instanceof Buffer)) {
-    if (!encoding)
-      throw new Error('A second "encoding" argument is expected if the first argument is not a buffer');
-    input = new Buffer(input, encoding);
+    base10array.reverse();
+    let bignum = base10array.join('');
+    if (isNegative) bignum = '-' + bignum;
+    return bignum;
   }
-  if (input[0] !== 4 && input[1] !== 8)
-    throw new Error('Input is not in marshal 4.8 format');
 
-  return parse(input.slice(2));
-}
+  _parseInteger() {
+    var small = this.buffer.readInt8(this._index++);
+    if (small === 0) return 0;
+    else if (small >= 6) return small - 5;
+    else if (small <= -6) return small + 5;
+    else if (small === 1) {
+      let large = this.buffer.readUInt8(this._index);
+      this._index += 1;
+      return large;
+    } else if (small === 2) {
+      let large = this.buffer.readUInt16LE(this._index);
+      this._index += 2;
+      return large;
+    } else if (small === 3) {
+      let large = Buffer.from(this.buffer.toString('hex', this._index, this._index + 3) + '00', 'hex').readUInt32LE(0);
+      this._index += 3;
+      return large;
+    } else if (small === 4) {
+      let large = this.buffer.readUInt32LE(this._index);
+      this._index += 4;
+      return large;
+    } else if (small === -1) {
+      let large = -(~(0xffffff00 + this.buffer.readUInt8(this._index)) + 1);
+      this._index += 1;
+      return large;
+    } else if (small === -2) {
+      let large = this.buffer.readInt16LE(this._index);
+      this._index += 2;
+      return large;
+    } else if (small === -3) {
+      let large = -(~(((0xffff0000 + this.buffer.readUInt16LE(this._index + 1)) << 8) + this.buffer.readUInt8(this._index)) + 1);
+      this._index += 3;
+      return large;
+    } else if (small === -4) {
+      let large = this.buffer.readInt32LE(this._index);
+      this._index += 4;
+      return large;
+    } else throw new Error('Unable to parse integer');
+  }
 
-export function dump(input: any, encoding: any) {
-  var buffer: any = new Buffer('0408', 'hex');
-  buffer = Buffer.concat([buffer, _dump(input)]);
-  if (encoding)
-    return buffer.toString(encoding);
-  return buffer;
+  _parseArray(): any[] {
+    let arr = [];
+    let length = this._parseInteger();
+    if (length > 0) {
+      let value;
+      while (arr.length < length) {
+        value = this._parse();
+        arr.push(value);
+      }
+    }
+    return arr;
+  }
+
+  _parseObject() {
+    let name = this._parse();
+    let obj: any = this._parseHash();
+    obj['_name'] = name;
+    return obj;
+  }
+
+  _parseHash() {
+    var hash: any = {};
+    let length = this._parseInteger();
+    if (length > 0) {
+      let key, value;
+      while (Object.keys(hash).length < length) {
+        key = this._parse();
+        value = this._parse();
+        hash[key] = value;
+      }
+    }
+    return hash;
+  }
+
+  _parseSymbol() {
+    let sym = this._parseString();
+    this._symbols.push(sym);
+    return sym;
+  }
+
+  _parseSymbolRef() {
+    let index = this._parseInteger();
+    let sym = this._symbols[index];
+    return sym;
+  }
+
+  _parseObjectLink() {
+    let index = this._parseInteger();
+    let obj = this._objects[index];
+    return obj;
+  }
+
+  _parseString() {
+    let length = this._parseInteger();
+    let str = this.buffer.slice(this._index, this._index + length).toString();
+    this._index += length;
+    return str;
+  }
+
+  _parseIVAR(): any {
+    let str: any = this._parse();
+
+    let encoding;
+    let lengthOfSymbolChar = this._parseInteger();
+    if (lengthOfSymbolChar === 1) {
+      let sym = this._parse();
+      let value = this._parse();
+      this._objects.push(value);
+
+      if (sym === 'E') {
+        if (value === true) encoding = 'utf8';
+        else encoding = 'ascii';
+      } else if (sym === 'encoding') {
+        if (value === 'ISO-8850-1') encoding = 'binary';
+        else encoding = value;
+      } else throw new Error('Invalid IVAR encoding specification ' + sym + '.');
+    } else throw new Error('Invalid IVAR, expected single character.');
+
+    let ivar = new Ivar(str, encoding);
+    this._objects.push(ivar);
+    return ivar.toString();
+  }
+
+  toString(encoding: string = null) {
+    return this.buffer.toString(encoding || 'base64');
+  }
+
+  toJSON() {
+    return this.parsed;
+  }
 }
