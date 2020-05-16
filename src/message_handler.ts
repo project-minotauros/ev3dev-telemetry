@@ -5,11 +5,11 @@ import {logToConsole} from './basic_panels';
 export function handle_message(state: any, cpanel_state: any) {
   if (state.ready && state.socket.onmessage == null) state.socket.onmessage = (message: any) => {
     console.log(message, cpanel_state);
-    let header = message.data[0].charCodeAt(0);
+    let header = parseInt(message.data.slice(0, message.data.indexOf('P')));
     let response_type = header >> 7;
     let device_type = (header >> 3) & 15;
     let device_id = (header >> 0) & 7;
-    let payload = new Marshal(message.data.slice(1), 'utf8').parsed;
+    let payload = new Marshal(message.data.slice(message.data.indexOf('P') + 1), 'utf8').parsed;
     switch (response_type) {
       case InboundFlags.CONSOLE_OUTPUT:
         logToConsole(payload);
@@ -40,9 +40,9 @@ export function encode_command(command: number, sub_command: number, device_type
   sub_command = Math.abs(Math.min(sub_command, 7));
   device_type = Math.abs(Math.min(device_type, 15));
   device_id = Math.abs(Math.min(device_id, 7));
-  return String.fromCharCode((command << 10) | (sub_command << 7) | (device_type << 3) | device_id);
+  return `${((command << 10) | (sub_command << 7) | (device_type << 3) | device_id)}P`;
 }
 
-export function send_command(state: any, command: any, payload: string = "") {
+export function send_command(state: any, command: string, payload: string = "") {
   state.socket.send(command + payload);
 }
