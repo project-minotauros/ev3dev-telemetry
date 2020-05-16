@@ -2,19 +2,20 @@ import * as ImGui from 'imgui-js';
 import {ImVec2, ImVec4, ImVector, ImGuiStyleVar} from 'imgui-js';
 import {IM_ARRAYSIZE, ImStringBuffer, ImGuiWindowFlags, ImGuiInputTextFlags, ImGuiCond, ImGuiCol} from 'imgui-js';
 import {Static, STATIC} from './imgui_helpers';
+import {send_execute_command} from './message_handler';
 
 export function display_basic_panels(state: any, cpanel_state: any) {
   if (!state.ready) return;
 
   if (cpanel_state.console)
-    console_panel(cpanel_state);
+    console_panel(state, cpanel_state);
 }
 
 var commandLine: ImStringBuffer = new ImStringBuffer(256, "");
 var consoleHistory: ImVector<string> = new ImVector<string>();
 var autoScroll: boolean = true;
 var scrollToBottom: boolean = true;
-function console_panel(cpanel_state: any) {
+function console_panel(state: any, cpanel_state: any) {
   if (!ImGui.Begin("Console", (v = cpanel_state.console) => cpanel_state.console = v)) {
     ImGui.End();
     return;
@@ -60,8 +61,7 @@ function console_panel(cpanel_state: any) {
     commandLine.buffer = commandLine.buffer.trim();
     if (commandLine.buffer.length > 0) {
       logToConsole("$ " + commandLine.buffer);
-      console.log("command", commandLine.buffer);
-      // TODO send command
+      send_execute_command(state, commandLine.buffer);
     }
     commandLine.buffer = "";
     reclaim_focus = true;

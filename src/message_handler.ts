@@ -1,5 +1,6 @@
 import Marshal from './marshal';
 import {InboundFlags, OutboundFlags, AvailableDevices} from './message_type';
+import {logToConsole} from './basic_panels';
 
 export function handle_message(state: any, cpanel_state: any) {
   if (state.ready && state.socket.onmessage == null) state.socket.onmessage = (message: any) => {
@@ -11,8 +12,10 @@ export function handle_message(state: any, cpanel_state: any) {
     let payload = new Marshal(message.data.slice(1), 'utf8').parsed;
     switch (response_type) {
       case InboundFlags.CONSOLE_OUTPUT:
+        logToConsole(payload);
         break;
       case InboundFlags.CONSOLE_ERROR:
+        logToConsole(payload, true);
         break;
       case InboundFlags.AVAILABLE_DEVICES:
         break;
