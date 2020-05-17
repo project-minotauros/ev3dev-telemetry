@@ -41,4 +41,19 @@ Object.freeze(OutboundFlags);
 Object.freeze(OutboundModifiers);
 Object.freeze(InboundFlags);
 
+export function GetDeviceName(device_type: number) {
+  switch (device_type) {
+    case AvailableDevices.NONE: return "none";
+    case AvailableDevices.DISPLAY: return "display";
+    case AvailableDevices.SOUND: return "sound";
+    case AvailableDevices.PORT: return "ports";
+    case AvailableDevices.LED: return "leds";
+    case AvailableDevices.BATTERY: return "battery";
+    case AvailableDevices.SENSOR: return "sensors";
+    case AvailableDevices.TMOTOR: return "tmotors";
+    case AvailableDevices.DMOTOR: return "dmotors";
+    case AvailableDevices.SMOTOR: return "smotors";
+  }
+}
+
 export {AvailableDevices, OutboundFlags, OutboundModifiers, InboundFlags};
