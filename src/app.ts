@@ -14,7 +14,8 @@ var clear_color: any;
 
 var state: any = {
   ready: false,
-  socket: undefined
+  socket: undefined,
+  devices: undefined
 };
 
 var cpanel_state: any = {
