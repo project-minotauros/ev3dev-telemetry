@@ -1,8 +1,9 @@
 import Marshal from './marshal';
-import {InboundFlags, OutboundFlags, AvailableDevices, GetDeviceName} from './message_type';
+import {InboundFlags, OutboundFlags, OutboundModifiers, AvailableDevices, GetDeviceName} from './message_type';
 import {logToConsole} from './basic_panels';
 
 export function handle_message(state: any, cpanel_state: any) {
+  window.state = state;
   if (state.ready && state.socket.onmessage == null) state.socket.onmessage = (message: any) => {
     let header = parseInt(message.data.slice(0, message.data.indexOf('P')));
     let response_type = header >> 7;
@@ -35,6 +36,11 @@ export function send_scan_devices(state: any, device: number = AvailableDevices.
 
 export function send_execute_command(state: any, cmd: string) {
   send_command(state, encode_command(OutboundFlags.EXECUTE_COMMAND, 0, 0, 0), cmd);
+}
+
+export function send_update_request(state: any, device_type: number, device_id: number, stop: boolean = false) {
+  let sub_command = stop ? OutboundModifiers.REMOVE : OutboundModifiers.READ;
+  send_command(state, encode_command(OutboundFlags.REQUEST_UPDATE, sub_command, device_type, device_id), "");
 }
 
 export function encode_command(command: number, sub_command: number, device_type: number, device_id: number) {
