@@ -5,7 +5,7 @@ import * as ImGui_Impl from 'imgui-js/example/imgui_impl';
 import {debug_window} from './debug';
 import {initialize_popup} from './initial_configuration';
 import {handle_message} from './message_handler';
-import {display_control_panel} from './control_panel';
+import {cpanel_state, display_control_panel} from './control_panel';
 import {display_basic_panels} from './basic_panels';
 
 var camera: any, scene: any, renderer: any;
@@ -16,15 +16,6 @@ var state: any = {
   ready: false,
   socket: undefined,
   devices: undefined
-};
-
-var cpanel_state: any = {
-  ports: false,
-  leds: false,
-  battery_info: false,
-  audio_controls: false,
-  display: false,
-  console: false
 };
 
 main().catch(err => console.log(err));
